@@ -1,17 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
-
-const API_BASE = import.meta.env.VITE_API_BASE ?? "";
-
-interface ApiKey {
-  id: string;
-  key_masked: string;
-  name: string;
-  created_at: string;
-}
-
-function getToken() {
-  return localStorage.getItem("token") ?? "";
-}
+import {
+  type ApiKey,
+  listApiKeys,
+  createApiKey,
+  deleteApiKey,
+} from "../api/apiKeys";
 
 export default function ApiKeysPage() {
   const [keys, setKeys] = useState<ApiKey[]>([]);
@@ -25,12 +18,7 @@ export default function ApiKeysPage() {
 
   const fetchKeys = useCallback(async () => {
     try {
-      const res = await fetch(`${API_BASE}/account/api-keys`, {
-        headers: { Authorization: `Bearer ${getToken()}` },
-      });
-      if (res.ok) {
-        setKeys(await res.json());
-      }
+      setKeys(await listApiKeys());
     } finally {
       setLoading(false);
     }
@@ -44,20 +32,10 @@ export default function ApiKeysPage() {
     if (!newKeyName.trim()) return;
     setCreating(true);
     try {
-      const res = await fetch(`${API_BASE}/account/api-keys`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${getToken()}`,
-        },
-        body: JSON.stringify({ name: newKeyName.trim() }),
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setCreatedKey(data.key);
-        setNewKeyName("");
-        fetchKeys();
-      }
+      const data = await createApiKey(newKeyName.trim());
+      setCreatedKey(data.key);
+      setNewKeyName("");
+      fetchKeys();
     } finally {
       setCreating(false);
     }
@@ -65,13 +43,8 @@ export default function ApiKeysPage() {
 
   const confirmDelete = async () => {
     if (!deleteTarget) return;
-    const res = await fetch(`${API_BASE}/account/api-keys/${deleteTarget.id}`, {
-      method: "DELETE",
-      headers: { Authorization: `Bearer ${getToken()}` },
-    });
-    if (res.ok) {
-      setKeys((prev) => prev.filter((k) => k.id !== deleteTarget.id));
-    }
+    await deleteApiKey(deleteTarget.id);
+    setKeys((prev) => prev.filter((k) => k.id !== deleteTarget.id));
     setDeleteTarget(null);
   };
 

@@ -1,25 +1,12 @@
 import { GoogleLogin, type CredentialResponse } from "@react-oauth/google";
-
-const API_BASE = import.meta.env.VITE_API_BASE ?? "";
+import { loginWithGoogle } from "../api/account";
 
 export default function LoginPage({ onLogin }: { onLogin: () => void }) {
   const handleSuccess = async (response: CredentialResponse) => {
     if (!response.credential) return;
 
     try {
-      const res = await fetch(`${API_BASE}/account-with-workspace`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id_token: response.credential }),
-      });
-
-      if (!res.ok) {
-        const error = await res.json();
-        console.error("Login failed:", error);
-        return;
-      }
-
-      const data = await res.json();
+      const data = await loginWithGoogle(response.credential);
       localStorage.setItem("token", data.token);
       localStorage.setItem("user_id", data.user_id);
       if (data.workspace) {
